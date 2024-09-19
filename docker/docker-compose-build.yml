@@ -1,0 +1,28 @@
+version: '3.9'
+services:
+  vision_tutorial:
+    build:
+      context: .
+      dockerfile: dockerfile
+      args:
+        USER: vision
+
+    tty: true
+    stdin_open: true
+    privileged: true
+    network_mode: host
+
+    image: vision_tutorial
+    container_name: build
+
+    volumes:
+      - $PWD/../ws:/home/vision/vision_ws
+
+    command: >
+      bash -c 
+      "
+      sudo rosdep update ;
+      sudo rosdep install --from-paths src --ignore-src -y ;
+      sudo chown -R $(whoami) /home/$USER/vision_ws ;
+      catkin_make ;
+      "

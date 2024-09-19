@@ -1,0 +1,26 @@
+version: '3.9'
+services:
+  vision_tutorial:
+    tty: true  
+    network_mode: host
+    privileged: true
+
+    image: vision_tutorial
+    container_name: run
+    
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+      - /tmp/.X11-unix:/tmp/.X11-unix
+
+      - $PWD/../ws:/home/vision/vision_ws
+
+    environment:
+      - DISPLAY=${DISPLAY}
+    devices:
+      - /dev/bus/usb
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+          
+    command: bash

@@ -1,0 +1,52 @@
+FROM ros:noetic
+
+LABEL org.opencontainers.image.authors="ohin"
+ENV RUNNING_IN_DOCKER true
+ARG USER
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y \
+    git \
+    sudo \
+    curl \
+    wget \
+    usbutils \
+    v4l-utils \
+    software-properties-common \
+    ros-noetic-tf2-ros \
+    ros-noetic-cv-bridge \
+    ros-noetic-image-geometry \
+    ros-noetic-image-transport \
+    ros-noetic-eigen-conversions \
+    ros-noetic-tf2-geometry-msgs \
+    ros-noetic-camera-info-manager \
+    ros-noetic-camera-calibration-parsers \
+    # && apt-add-repository ppa:fish-shell/release-3 \
+    # && apt update && DEBIAN_FRONTEND=noninteractive apt install -y \
+    # fish \
+    && apt clean -y && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --gid $USER_GID $USER \
+    && useradd --uid $USER_UID --gid $USER_GID -ms /bin/bash $USER \
+    && usermod -aG sudo,video $USER \
+    && echo "$USER ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/$USER \
+    && echo "source /opt/ros/noetic/setup.bash" >> /home/$USER/.bashrc
+
+# SHELL ["/usr/bin/fish", "-ic"]
+USER $USER
+WORKDIR /home/$USER/vision_ws
+
+# RUN curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source \
+#     && fisher install jorgebucaran/fisher edc/bass \
+#     && sudo wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-linux-amd64 -O /usr/local/bin/oh-my-posh \
+#     && sudo chmod +x /usr/local/bin/oh-my-posh
+# 
+# RUN fish -c "printf 'if status is-interactive\n\
+#     set -U fish_greeting\n\
+#     bass source /opt/ros/noetic/setup.bash --prefix ROS\n\
+#     cd ~/vision_ws\n\
+# end\n' >> /home/$USER/.config/fish/config.fish"
+
+# CMD [ "/usr/bin/fish" ]
+CMD [ "/bin/bash" ]

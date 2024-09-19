@@ -1,0 +1,8 @@
+prefix=/home/vision/vision_ws/devel
+
+Name: image_publisher
+Description: Description of image_publisher
+Version: 1.17.0
+Cflags: -I/home/vision/vision_ws/devel/include
+Libs: -L${prefix}/lib 
+Requires: 
