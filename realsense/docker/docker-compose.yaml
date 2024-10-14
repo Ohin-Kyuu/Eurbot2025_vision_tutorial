@@ -1,0 +1,36 @@
+services:
+  realsense: &vision_tutorial
+    build:
+      context: .
+      target: realsense  
+      args:
+        USER: realsense
+    tty: true
+    stdin_open: true
+    privileged: true
+    network_mode: host
+   
+    image: vision_tutorial:realsense
+    container_name: realsense
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - $PWD/../ws:/home/$USER/vision_ws
+    command: bash
+
+  aruco:
+    <<: *vision_tutorial
+    build:
+      context: .
+      target: aruco 
+      args:
+        USER: aruco
+    tty: true
+    stdin_open: true
+    privileged: true
+    network_mode: host
+    image: vision_tutorial:aruco
+    container_name: aruco
+    volumes:
+      - $PWD/../ws:/home/$USER/vision_ws
+    command: bash
