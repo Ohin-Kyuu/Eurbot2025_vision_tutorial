@@ -15,7 +15,11 @@ services:
     volumes:
       - /dev/bus/usb:/dev/bus/usb
       - /tmp/.X11-unix:/tmp/.X11-unix
-      - $PWD/../ws:/home/$USER/vision_ws
+      - $PWD/../ws/realsense_pkg:/home/realsense/vision_ws/src/realsense-ros
+    environment:
+      - DISPLAY=${DISPLAY}
+    devices:
+      - /dev/bus/usb
     command: bash
 
   aruco:
@@ -32,5 +36,8 @@ services:
     image: vision_tutorial:aruco
     container_name: aruco
     volumes:
-      - $PWD/../ws:/home/$USER/vision_ws
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - $PWD/../ws/aruco_pkg:/home/aruco/vision_ws/src/aruco_ros
+    environment:
+      - DISPLAY=${DISPLAY}
     command: bash
