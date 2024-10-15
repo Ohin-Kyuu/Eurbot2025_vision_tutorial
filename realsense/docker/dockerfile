@@ -8,6 +8,8 @@ RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y \
     wget \
     usbutils \
     v4l-utils \
+    net-tools \
+    iputils-ping \
     software-properties-common \
     ros-noetic-tf \
     ros-noetic-tf2-ros \
@@ -39,12 +41,13 @@ RUN groupadd --gid $USER_GID $USER \
     && useradd --uid $USER_UID --gid $USER_GID -ms /bin/bash $USER \
     && usermod -aG sudo,video $USER \
     && echo "$USER ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/$USER \
-    && echo "source /opt/ros/noetic/setup.bash" >> /home/$USER/.bashrc
+    && echo "source /opt/ros/noetic/setup.bash" >> /home/$USER/.bashrc \
+    && echo "source /home/$USER/vision_ws/devel/setup.bash" >> /home/$USER/.bashrc
+USER $USER
 RUN mkdir -p /home/$USER/vision_ws/src && cd /home/$USER/vision_ws/src \
     && git clone --branch 2.3.2 https://github.com/IntelRealSense/realsense-ros.git \
     && cd /home/$USER/vision_ws \
     && /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
-USER $USER
 WORKDIR /home/$USER/vision_ws
 CMD [ "/bin/bash" ]
 
@@ -57,10 +60,10 @@ RUN groupadd --gid $USER_GID $USER \
     && usermod -aG sudo,video $USER \
     && echo "$USER ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/$USER \
     && echo "source /opt/ros/noetic/setup.bash" >> /home/$USER/.bashrc
+USER $USER
 RUN mkdir -p /home/$USER/vision_ws/src && cd /home/$USER/vision_ws/src \
     && git clone --branch noetic-devel https://github.com/pal-robotics/aruco_ros.git \
     && cd /home/$USER/vision_ws \
     && /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
-USER $USER
 WORKDIR /home/$USER/vision_ws
 CMD [ "/bin/bash" ]

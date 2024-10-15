@@ -1,3 +1,15 @@
+networks:
+    vision_l3_net:
+      driver: ipvlan
+      driver_opts:
+        parent: wlo1
+        ipvlan_mode: l3
+      attachable: true
+      ipam:
+        config:
+          - subnet: 10.1.53.0/24
+            gateway: 10.1.53.1
+
 services:
   realsense: &vision_tutorial
     build:
@@ -8,8 +20,9 @@ services:
     tty: true
     stdin_open: true
     privileged: true
-    network_mode: host
-   
+    networks:
+      vision_l3_net:
+        ipv4_address: 10.1.53.2
     image: vision_tutorial:realsense
     container_name: realsense
     volumes:
@@ -18,9 +31,11 @@ services:
       - $PWD/../ws/realsense_pkg:/home/realsense/vision_ws/src/realsense-ros
     environment:
       - DISPLAY=${DISPLAY}
+      - ROS_MASTER_URI=http://10.1.53.2:11311
+      - ROS_IP=10.1.53.2
     devices:
       - /dev/bus/usb
-    command: bash
+    command: bash -ic "roslaunch realsense2_camera rs_camera.launch"
 
   aruco:
     <<: *vision_tutorial
@@ -32,7 +47,9 @@ services:
     tty: true
     stdin_open: true
     privileged: true
-    network_mode: host
+    networks:
+      vision_l3_net:
+        ipv4_address: 10.1.53.10
     image: vision_tutorial:aruco
     container_name: aruco
     volumes:
@@ -40,4 +57,6 @@ services:
       - $PWD/../ws/aruco_pkg:/home/aruco/vision_ws/src/aruco_ros
     environment:
       - DISPLAY=${DISPLAY}
+      - ROS_MASTER_URI=http://10.1.53.2:11311
+      - ROS_IP=10.1.53.10
     command: bash
