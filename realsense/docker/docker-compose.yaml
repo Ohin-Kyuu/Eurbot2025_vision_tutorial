@@ -1,25 +1,33 @@
-networks:
-    vision_l3_net:
-      driver: ipvlan
-      driver_opts:
-        parent: wlo1
-        ipvlan_mode: l3
-      attachable: true
-      ipam:
-        config:
-          - subnet: 10.1.53.0/24
-            gateway: 10.1.53.1
+# Common env for services
+x-common-env: &common-env
+  tty: true
+  stdin_open: true
+  privileged: true
+  stop_grace_period: 1s
 
+# Network
+networks:
+  vision_l3_net:
+    driver: ipvlan
+    driver_opts:
+      parent: wlo1
+      ipvlan_mode: l3
+    attachable: true
+    ipam:
+      config:
+        - subnet: 10.1.53.0/24
+          gateway: 10.1.53.1
+
+# Services
 services:
-  realsense: &vision_tutorial
+  realsense: 
     build:
       context: .
       target: realsense  
       args:
         USER: realsense
-    tty: true
-    stdin_open: true
-    privileged: true
+    <<: 
+      - *common-env
     networks:
       vision_l3_net:
         ipv4_address: 10.1.53.2
@@ -27,36 +35,82 @@ services:
     container_name: realsense
     volumes:
       - /dev/bus/usb:/dev/bus/usb
-      - /tmp/.X11-unix:/tmp/.X11-unix
       - $PWD/../ws/realsense_pkg:/home/realsense/vision_ws/src/realsense-ros
+      - $PWD/healthcheck/realsense-healthcheck.sh:/home/realsense/vision_ws/realsense-healthcheck.sh
     environment:
-      - DISPLAY=${DISPLAY}
-      - ROS_MASTER_URI=http://10.1.53.2:11311
+      - ROS_MASTER_URI=http://10.1.53.2:11311 
       - ROS_IP=10.1.53.2
-    devices:
-      - /dev/bus/usb
-    command: bash -ic "roslaunch realsense2_camera rs_camera.launch"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '/home/realsense/vision_ws/realsense-healthcheck.sh'"]
+      interval: 1s
+      timeout: 1s
+      retries: 5
+      start_period: 3s
+    labels:
+      heal: true
+    command: bash -ic "catkin_make ; roslaunch realsense2_camera rs_camera.launch"
 
   aruco:
-    <<: *vision_tutorial
     build:
       context: .
       target: aruco 
       args:
         USER: aruco
-    tty: true
-    stdin_open: true
-    privileged: true
+    <<: *common-env
     networks:
       vision_l3_net:
         ipv4_address: 10.1.53.10
     image: vision_tutorial:aruco
     container_name: aruco
     volumes:
-      - /tmp/.X11-unix:/tmp/.X11-unix
       - $PWD/../ws/aruco_pkg:/home/aruco/vision_ws/src/aruco_ros
+      - $PWD/healthcheck/aruco-healthcheck.sh:/home/aruco/vision_ws/aruco-healthcheck.sh
+    environment:
+      - ROS_MASTER_URI=http://10.1.53.2:11311
+      - ROS_IP=10.1.53.10
+    depends_on:
+      realsense:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '/home/aruco/vision_ws/aruco-healthcheck.sh'"]
+      interval: 1s
+      timeout: 1s
+      retries: 3
+      start_period: 3s
+    labels:
+      heal: true
+    command: bash -ic "catkin_make clean && catkin_make; roslaunch aruco_ros single.launch"
+
+  gui:
+    build:
+      context: .
+      target: gui
+      args:
+        USER: gui
+    <<: *common-env
+    networks:
+      vision_l3_net:
+        ipv4_address: 10.1.53.50
+    image: vision_tutorial:gui
+    container_name: gui
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
     environment:
       - DISPLAY=${DISPLAY}
       - ROS_MASTER_URI=http://10.1.53.2:11311
-      - ROS_IP=10.1.53.10
-    command: bash
+      - ROS_IP=10.1.53.50
+    depends_on:
+      aruco:
+        condition: service_healthy
+    command: bash -ic "rqt"
+
+  autoheal: 
+    restart: always
+    image: willfarrell/autoheal
+    container_name: autoheal
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: heal
+      AUTOHEAL_INTERVAL: 1
+      
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

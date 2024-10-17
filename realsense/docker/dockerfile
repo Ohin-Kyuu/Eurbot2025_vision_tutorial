@@ -59,11 +59,28 @@ RUN groupadd --gid $USER_GID $USER \
     && useradd --uid $USER_UID --gid $USER_GID -ms /bin/bash $USER \
     && usermod -aG sudo,video $USER \
     && echo "$USER ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/$USER \
-    && echo "source /opt/ros/noetic/setup.bash" >> /home/$USER/.bashrc
+    && echo "source /opt/ros/noetic/setup.bash" >> /home/$USER/.bashrc \
+    && echo "source /home/$USER/vision_ws/devel/setup.bash" >> /home/$USER/.bashrc
 USER $USER
 RUN mkdir -p /home/$USER/vision_ws/src && cd /home/$USER/vision_ws/src \
     && git clone --branch noetic-devel https://github.com/pal-robotics/aruco_ros.git \
     && cd /home/$USER/vision_ws \
     && /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
 WORKDIR /home/$USER/vision_ws
+CMD [ "/bin/bash" ]
+
+FROM base AS gui
+ARG USER
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y \
+    ros-noetic-rqt-common-plugins \
+    ros-noetic-rviz \
+    && apt clean -y && rm -rf /var/lib/apt/list/*
+RUN groupadd --gid $USER_GID $USER \
+    && useradd --uid $USER_UID --gid $USER_GID -ms /bin/bash $USER \
+    && usermod -aG sudo,video $USER \
+    && echo "$USER ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/$USER \
+    && echo "source /opt/ros/noetic/setup.bash" >> /home/$USER/.bashrc
+USER $USER
 CMD [ "/bin/bash" ]
